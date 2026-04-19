@@ -1,0 +1,128 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Phone, Store, KeyRound, Loader2, Check } from 'lucide-react'
+import { toast } from 'sonner'
+
+export default function SettingsPage() {
+  const supabase = createClient()
+  const [whatsapp, setWhatsapp] = useState('')
+  const [isOpen, setIsOpen] = useState(true)
+  const [restaurantName, setRestaurantName] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [savingGeneral, setSavingGeneral] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [savingPwd, setSavingPwd] = useState(false)
+  const [user, setUser] = useState(null)
+
+  const load = async () => {
+    const [{ data: settings }, { data: userData }] = await Promise.all([
+      supabase.from('settings').select('*'),
+      supabase.auth.getUser(),
+    ])
+    setUser(userData.user)
+    const map = {}
+    ;(settings || []).forEach((s) => { map[s.key] = s.value })
+    setWhatsapp(typeof map.whatsapp_number === 'string' ? map.whatsapp_number : (map.whatsapp_number || ''))
+    setIsOpen(map.is_open === true || map.is_open === 'true' || map.is_open === undefined ? (map.is_open !== false) : false)
+    setRestaurantName(typeof map.restaurant_name === 'string' ? map.restaurant_name : (map.restaurant_name || 'Döner House'))
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  const saveSetting = async (key, value) => {
+    const { error } = await supabase.from('settings').upsert({ key, value, updated_at: new Date().toISOString() })
+    if (error) throw error
+  }
+
+  const saveGeneral = async () => {
+    setSavingGeneral(true)
+    try {
+      await saveSetting('whatsapp_number', whatsapp)
+      await saveSetting('restaurant_name', restaurantName)
+      await saveSetting('is_open', isOpen)
+      toast.success('Settings saved')
+    } catch (e) {
+      toast.error(e.message)
+    }
+    setSavingGeneral(false)
+  }
+
+  const toggleOpen = async (val) => {
+    setIsOpen(val)
+    try {
+      await saveSetting('is_open', val)
+      toast.success(val ? 'Restaurant OPEN' : 'Restaurant CLOSED')
+    } catch (e) { toast.error(e.message) }
+  }
+
+  const changePassword = async () => {
+    if (!newPassword || newPassword.length < 6) return toast.error('Password must be 6+ chars')
+    setSavingPwd(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    setSavingPwd(false)
+    if (error) return toast.error(error.message)
+    toast.success('Password updated')
+    setNewPassword('')
+  }
+
+  if (loading) return <div className="text-center py-20"><Loader2 className="w-5 h-5 animate-spin mx-auto text-orange-500" /></div>
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div>
+        <h1 className="font-display text-3xl font-bold">Settings</h1>
+        <p className="text-muted-foreground mt-1">Configure your restaurant</p>
+      </div>
+
+      <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className="bg-card border border-border rounded-2xl p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Store className="w-4 h-4 text-orange-500" />
+          <h3 className="font-display text-lg font-semibold">Restaurant Status</h3>
+        </div>
+        <div className={`flex items-center justify-between p-4 rounded-xl border ${isOpen ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
+          <div>
+            <div className="font-medium">{isOpen ? 'Currently OPEN' : 'Currently CLOSED'}</div>
+            <p className="text-xs text-muted-foreground mt-0.5">{isOpen ? 'Customer app accepts orders' : 'Customer app shows closed banner'}</p>
+          </div>
+          <Switch checked={isOpen} onCheckedChange={toggleOpen} className="data-[state=checked]:bg-orange-500" />
+        </div>
+      </motion.div>
+
+      <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="bg-card border border-border rounded-2xl p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Phone className="w-4 h-4 text-orange-500" />
+          <h3 className="font-display text-lg font-semibold">General</h3>
+        </div>
+        <div className="space-y-4">
+          <div><Label className="text-xs uppercase tracking-wider text-muted-foreground">Restaurant Name</Label><Input value={restaurantName} onChange={(e)=>setRestaurantName(e.target.value)} className="mt-1.5 bg-secondary border-border" /></div>
+          <div><Label className="text-xs uppercase tracking-wider text-muted-foreground">WhatsApp Number</Label><Input value={whatsapp} onChange={(e)=>setWhatsapp(e.target.value)} className="mt-1.5 bg-secondary border-border font-mono" placeholder="+966500000000" /></div>
+          <Button onClick={saveGeneral} disabled={savingGeneral} className="bg-orange-500 hover:bg-orange-600 text-white gap-2">
+            {savingGeneral ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Save changes
+          </Button>
+        </div>
+      </motion.div>
+
+      <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.2}} className="bg-card border border-border rounded-2xl p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <KeyRound className="w-4 h-4 text-orange-500" />
+          <h3 className="font-display text-lg font-semibold">Admin Password</h3>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">Signed in as <span className="font-mono text-foreground">{user?.email}</span></p>
+        <div className="flex gap-2">
+          <Input type="password" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} className="bg-secondary border-border font-mono" placeholder="New password (6+ chars)" />
+          <Button onClick={changePassword} disabled={savingPwd} className="bg-orange-500 hover:bg-orange-600 text-white whitespace-nowrap">
+            {savingPwd ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update'}
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
