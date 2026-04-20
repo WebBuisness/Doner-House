@@ -81,7 +81,7 @@ insert into settings (key, value) values
   ('restaurant_open', 'true'),
   ('opening_hours', '{"0":["10:00","22:00"],"1":["10:00","22:00"],"2":["10:00","22:00"],"3":["10:00","22:00"],"4":["10:00","22:00"],"5":["10:00","22:00"],"6":["10:00","22:00"]}'),
   ('restaurant_name', '"Döner House"'),
-  ('whatsapp_template', '"🆕 *NEW ORDER: #{{orderNo}}*\\n--------------------------\\n👤 *Customer:* {{name}}\\n📞 *Phone:* {{phone}}\\n📍 *Address:* {{address}}\\n--------------------------\\n🛒 *Items:*\\n{{items}}\\n--------------------------\\n💰 *Total:* ${{total}}\\n💳 *Payment:* Cash on Delivery"')
+  ('whatsapp_template', '"🆕 *NEW ORDER: #{{orderNo}}*\\n--------------------------\\n👤 *Customer:* {{name}}\\n📞 *Phone:* {{phone}}\\n📍 *Address:* {{address}}\\n--------------------------\\n🛒 *Items:*\\n{{items}}\\n--------------------------\\n💰 *Total:* \${{total}}\\n💳 *Payment:* Cash on Delivery"')
 on conflict (key) do nothing;
 
 -- RLS
