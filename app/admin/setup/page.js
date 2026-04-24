@@ -5,7 +5,7 @@ import { Copy, Check, Database, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
-const SQL = `-- Döner House Admin: run this once in Supabase SQL Editor
+const SQL = `-- Karmesh Broasted Admin: run this once in Supabase SQL Editor
 -- https://supabase.com/dashboard/project/_/sql
 
 create extension if not exists "pgcrypto";
@@ -72,7 +72,7 @@ insert into settings (key, value) values
   ('whatsapp_number', '"+966500000000"'),
   ('restaurant_open', 'true'),
   ('opening_hours', '{"0":["10:00","22:00"],"1":["10:00","22:00"],"2":["10:00","22:00"],"3":["10:00","22:00"],"4":["10:00","22:00"],"5":["10:00","22:00"],"6":["10:00","22:00"]}'),
-  ('restaurant_name', '"Döner House"'),
+  ('restaurant_name', '"Karmesh Broasted"'),
   ('whatsapp_template', '"🆕 *NEW ORDER: #{{orderNo}}*\\n--------------------------\\n👤 *Customer:* {{name}}\\n📞 *Phone:* {{phone}}\\n📍 *Address:* {{address}}\\n--------------------------\\n🛒 *Items:*\\n{{items}}\\n--------------------------\\n💰 *Total:* \${{total}}\\n💳 *Payment:* Cash on Delivery"')
 on conflict (key) do nothing;
 
@@ -166,8 +166,8 @@ export default function SetupPage() {
       </div>
 
       <ol className="mt-6 space-y-2 text-sm text-muted-foreground">
-        <li><span className="text-orange-500 font-mono mr-2">1.</span>Click "Open SQL Editor" to jump to Supabase.</li>
-        <li><span className="text-orange-500 font-mono mr-2">2.</span>Paste the SQL and click "Run".</li>
+        <li><span className="text-orange-500 font-mono mr-2">1.</span>Click &quot;Open SQL Editor&quot; to jump to Supabase.</li>
+        <li><span className="text-orange-500 font-mono mr-2">2.</span>Paste the SQL and click &quot;Run&quot;.</li>
         <li><span className="text-orange-500 font-mono mr-2">3.</span>Come back to <a href="/admin/items" className="text-orange-500 underline">Menu Items</a>.</li>
       </ol>
     </motion.div>

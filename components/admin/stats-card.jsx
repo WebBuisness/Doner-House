@@ -14,7 +14,7 @@ function CountUp({ value, prefix = '', suffix = '', decimals = 0 }) {
   useEffect(() => {
     const controls = animate(count, Number(value) || 0, { duration: 1.2, ease: 'easeOut' })
     return controls.stop
-  }, [value])
+  }, [value, count])
 
   return <motion.span>{rounded}</motion.span>
 }

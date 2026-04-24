@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,7 +51,7 @@ export default function ItemsPage() {
   const [errors, setErrors] = useState({});
   const [error, setError] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setError(null);
       const [itemsRes, catsRes] = await Promise.all([
@@ -73,11 +74,11 @@ export default function ItemsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const filtered = useMemo(() => {
     return items.filter((i) => {
@@ -230,13 +231,13 @@ export default function ItemsPage() {
                   >
                     <td className="px-6 py-3">
                       {it.image_url ? (
-                        <img
+                        <Image
                           src={it.image_url}
                           alt=""
+                          width={40}
+                          height={40}
+                          unoptimized
                           className="w-10 h-10 rounded-lg object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">

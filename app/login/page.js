@@ -21,7 +21,7 @@ export default function LoginPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) router.replace('/admin')
     })
-  }, [])
+  }, [router, supabase.auth])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -68,7 +68,7 @@ export default function LoginPage() {
             <Flame className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight">Döner House</h1>
+            <h1 className="font-display text-2xl font-bold tracking-tight">Karmesh Broasted</h1>
             <p className="text-xs text-muted-foreground uppercase tracking-widest">Admin Panel</p>
           </div>
         </div>
@@ -93,7 +93,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="mt-1.5 bg-secondary border-border h-11"
-                placeholder="admin@donerhouse.com"
+                placeholder="admin@karmeshbroasted.com"
               />
             </div>
             <div>

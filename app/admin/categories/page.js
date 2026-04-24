@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -47,13 +47,13 @@ export default function CategoriesPage() {
   const [form, setForm] = useState({ name_en: '', name_ar: '', active: true })
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const { data, error } = await supabase.from('categories').select('*').order('sort_order', { ascending: true })
     if (!error) setCats(data || [])
     setLoading(false)
-  }
+  }, [supabase])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   const handleDragEnd = async (ev) => {
     const { active, over } = ev

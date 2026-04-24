@@ -1,12 +1,12 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Phone, Store, KeyRound, Loader2, Check, Clock, Copy, Ban } from 'lucide-react'
+import { Phone, Store, KeyRound, Loader2, Check, Clock, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function SettingsPage() {
@@ -22,7 +22,7 @@ export default function SettingsPage() {
   const [savingPwd, setSavingPwd] = useState(false)
   const [user, setUser] = useState(null)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [{ data: settings }, { data: userData }] = await Promise.all([
       supabase.from('settings').select('*'),
       supabase.auth.getUser(),
@@ -32,13 +32,13 @@ export default function SettingsPage() {
     ;(settings || []).forEach((s) => { map[s.key] = s.value })
     setWhatsapp(typeof map.whatsapp_number === 'string' ? map.whatsapp_number : (map.whatsapp_number || ''))
     setIsOpen(map.restaurant_open === true || map.restaurant_open === 'true' || map.restaurant_open === undefined ? (map.restaurant_open !== false) : false)
-    setRestaurantName(typeof map.restaurant_name === 'string' ? map.restaurant_name : (map.restaurant_name || 'Döner House'))
+    setRestaurantName(typeof map.restaurant_name === 'string' ? map.restaurant_name : (map.restaurant_name || 'Karmesh Broasted'))
     setOpeningHours(typeof map.opening_hours === 'string' ? JSON.parse(map.opening_hours) : (map.opening_hours || {}))
     setWhatsappTemplate(typeof map.whatsapp_template === 'string' ? map.whatsapp_template : (map.whatsapp_template || ''))
     setLoading(false)
-  }
+  }, [supabase])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   const saveSetting = async (key, value) => {
     const { error } = await supabase.from('settings').upsert({ key, value, updated_at: new Date().toISOString() })

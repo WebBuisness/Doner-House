@@ -21,7 +21,7 @@ async function handler(request, { params }) {
   try {
     // Health / root
     if ((route === '/' || route === '/root') && method === 'GET') {
-      return cors(NextResponse.json({ message: 'Doner House Admin API' }))
+      return cors(NextResponse.json({ message: 'Karmesh Broasted Admin API' }))
     }
 
     const supabase = createAdminClient()

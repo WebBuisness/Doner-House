@@ -2,8 +2,8 @@ import './globals.css'
 import { Toaster } from 'sonner'
 
 export const metadata = {
-  title: 'Döner House — Admin',
-  description: 'Admin panel for Döner House',
+  title: 'Karmesh Broasted — Admin',
+  description: 'Admin panel for Karmesh Broasted',
 }
 
 export default function RootLayout({ children }) {

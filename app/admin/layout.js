@@ -27,7 +27,7 @@ export default function AdminLayout({ children }) {
       if (!session) router.replace('/login')
     })
     return () => listener.subscription.unsubscribe()
-  }, [])
+  }, [router, supabase.auth])
 
   if (loading) {
     return (

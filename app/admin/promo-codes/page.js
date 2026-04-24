@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -21,13 +21,13 @@ export default function PromoCodesPage() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(empty)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const { data } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false })
     setPromos(data || [])
     setLoading(false)
-  }
+  }, [supabase])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   const save = async () => {
     if (!form.code) return
