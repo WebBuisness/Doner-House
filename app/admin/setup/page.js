@@ -5,7 +5,7 @@ import { Copy, Check, Database, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
-const SQL = `-- Karmesh Broasted Admin: run this once in Supabase SQL Editor
+const SQL = `-- WBS Menu Demo Admin: run this once in Supabase SQL Editor
 -- https://supabase.com/dashboard/project/_/sql
 
 create extension if not exists "pgcrypto";
@@ -72,7 +72,7 @@ insert into settings (key, value) values
   ('whatsapp_number', '"+966500000000"'),
   ('restaurant_open', 'true'),
   ('opening_hours', '{"0":["10:00","22:00"],"1":["10:00","22:00"],"2":["10:00","22:00"],"3":["10:00","22:00"],"4":["10:00","22:00"],"5":["10:00","22:00"],"6":["10:00","22:00"]}'),
-  ('restaurant_name', '"Karmesh Broasted"'),
+  ('restaurant_name', '"WBS Menu Demo"'),
   ('whatsapp_template', '"🆕 *NEW ORDER: #{{orderNo}}*\\n--------------------------\\n👤 *Customer:* {{name}}\\n📞 *Phone:* {{phone}}\\n📍 *Address:* {{address}}\\n--------------------------\\n🛒 *Items:*\\n{{items}}\\n--------------------------\\n💰 *Total:* \${{total}}\\n💳 *Payment:* Cash on Delivery"')
 on conflict (key) do nothing;
 

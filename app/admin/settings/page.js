@@ -32,7 +32,7 @@ export default function SettingsPage() {
     ;(settings || []).forEach((s) => { map[s.key] = s.value })
     setWhatsapp(typeof map.whatsapp_number === 'string' ? map.whatsapp_number : (map.whatsapp_number || ''))
     setIsOpen(map.restaurant_open === true || map.restaurant_open === 'true' || map.restaurant_open === undefined ? (map.restaurant_open !== false) : false)
-    setRestaurantName(typeof map.restaurant_name === 'string' ? map.restaurant_name : (map.restaurant_name || 'Karmesh Broasted'))
+    setRestaurantName(typeof map.restaurant_name === 'string' ? map.restaurant_name : (map.restaurant_name || 'WBS Menu Demo'))
     setOpeningHours(typeof map.opening_hours === 'string' ? JSON.parse(map.opening_hours) : (map.opening_hours || {}))
     setWhatsappTemplate(typeof map.whatsapp_template === 'string' ? map.whatsapp_template : (map.whatsapp_template || ''))
     setLoading(false)

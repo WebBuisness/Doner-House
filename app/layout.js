@@ -2,8 +2,8 @@ import './globals.css'
 import { Toaster } from 'sonner'
 
 export const metadata = {
-  title: 'Karmesh Broasted — Admin',
-  description: 'Admin panel for Karmesh Broasted',
+  title: 'WBS Menu Demo — Admin',
+  description: 'Admin panel for WBS Menu Demo',
 }
 
 export default function RootLayout({ children }) {

@@ -42,7 +42,7 @@ export default function Sidebar({ userEmail }) {
           <Flame className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="font-display text-base font-bold leading-tight">Karmesh Broasted</h1>
+          <h1 className="font-display text-base font-bold leading-tight">WBS Menu Demo</h1>
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Admin</p>
         </div>
       </div>

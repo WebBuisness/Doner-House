@@ -68,7 +68,7 @@ export default function LoginPage() {
             <Flame className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight">Karmesh Broasted</h1>
+            <h1 className="font-display text-2xl font-bold tracking-tight">WBS Menu Demo</h1>
             <p className="text-xs text-muted-foreground uppercase tracking-widest">Admin Panel</p>
           </div>
         </div>
