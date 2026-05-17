@@ -9,10 +9,26 @@ import {
   TrendingUp,
   Clock,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ChevronRight,
+  RefreshCcw,
 } from 'lucide-react'
-import { TableSkeleton } from '@/components/Skeletons'
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Button,
+  Chip,
+  Card,
+  CardBody,
+  CardHeader,
+  Divider,
+} from '@heroui/react'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -59,135 +75,145 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 bg-card animate-pulse rounded-2xl border border-border" />
-          ))}
-        </div>
-        <TableSkeleton />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <RefreshCcw className="w-10 h-10 animate-spin text-orange-500" />
+        <p className="text-sm text-muted-foreground animate-pulse">Initializing dashboard...</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Overview of your restaurant&apos;s performance</p>
+    <div className="space-y-10 pb-10">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-4xl font-black tracking-tight">Analytics</h1>
+        <p className="text-default-500 font-medium">Monitoring your restaurant performance in real-time.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           icon={UtensilsCrossed}
-          label="Total Items"
+          label="Menu Items"
           value={stats.items}
-          subtext={`${stats.activeItems} items available`}
+          subtext={`${stats.activeItems} items online`}
           delay={0.1}
         />
         <StatsCard
           icon={FolderTree}
           label="Categories"
           value={stats.categories}
+          subtext="Menu sections"
           delay={0.2}
         />
         <StatsCard
           icon={TicketPercent}
           label="Promo Codes"
           value={stats.promos}
+          subtext="Active discounts"
           delay={0.3}
         />
         <StatsCard
           icon={TrendingUp}
-          label="Growth"
-          value={12}
+          label="Daily Growth"
+          value={12.4}
           suffix="%"
+          decimals={1}
           accent
+          subtext="+2.1% from yesterday"
           delay={0.4}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold font-display">Recent Orders</h2>
-            <button className="text-orange-500 text-sm hover:underline">View all</button>
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-2xl font-bold tracking-tight">Recent Orders</h2>
+            <Button
+              as={Link}
+              href="/admin/orders"
+              variant="light"
+              color="warning"
+              size="sm"
+              className="font-bold"
+              endContent={<ChevronRight className="w-4 h-4" />}
+            >
+              View All
+            </Button>
           </div>
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                    <th className="px-6 py-4 font-medium">Order ID</th>
-                    <th className="px-6 py-4 font-medium">Customer</th>
-                    <th className="px-6 py-4 font-medium">Status</th>
-                    <th className="px-6 py-4 font-medium text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {recentOrders.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground italic">
-                        No orders yet
-                      </td>
-                    </tr>
-                  ) : recentOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-secondary/30 transition-colors">
-                      <td className="px-6 py-4 font-mono text-xs">#{order.id.slice(0, 8)}</td>
-                      <td className="px-6 py-4 font-medium">{order.customer_name}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          order.status === 'pending' ? 'bg-orange-500/10 text-orange-500' :
-                          order.status === 'completed' ? 'bg-green-500/10 text-green-500' :
-                          'bg-secondary text-muted-foreground'
-                        }`}>
-                          {order.status === 'pending' && <Clock className="w-3 h-3" />}
-                          {order.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right font-mono font-bold text-orange-500">
-                        ${Number(order.total).toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+
+          <Table
+            aria-label="Recent orders table"
+            classNames={{
+              wrapper: "bg-content1/50 backdrop-blur-md shadow-xl rounded-3xl border border-divider",
+              th: "bg-content2 text-default-500 font-bold",
+            }}
+          >
+            <TableHeader>
+              <TableColumn>ORDER ID</TableColumn>
+              <TableColumn>CUSTOMER</TableColumn>
+              <TableColumn>STATUS</TableColumn>
+              <TableColumn align="end">TOTAL</TableColumn>
+            </TableHeader>
+            <TableBody emptyContent="No recent orders.">
+              {recentOrders.map((order) => (
+                <TableRow key={order.id} className="cursor-pointer hover:bg-content2/50 transition-colors">
+                  <TableCell>
+                    <span className="font-mono text-xs text-default-400">#{order.id.slice(-6).toUpperCase()}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-bold">{order.customer_name}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      size="sm"
+                      variant="dot"
+                      color={order.status === 'completed' ? 'success' : order.status === 'pending' ? 'warning' : 'default'}
+                      className="capitalize font-bold border-none"
+                    >
+                      {order.status}
+                    </Chip>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-black text-orange-500">${Number(order.total).toFixed(2)}</span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold font-display">System Status</h2>
-          <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-bold">API Status</p>
-                <p className="text-xs text-muted-foreground">Operational</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-bold">Database</p>
-                <p className="text-xs text-muted-foreground">Healthy</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500">
-                <AlertCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-bold">Storage</p>
-                <p className="text-xs text-muted-foreground">84% Capacity</p>
-              </div>
-            </div>
-          </div>
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold tracking-tight px-2">Infrastructure</h2>
+          <Card className="bg-content1/50 backdrop-blur-md border border-divider rounded-3xl shadow-xl">
+            <CardBody className="p-6 space-y-6">
+              {[
+                { label: 'API Gateway', status: 'Operational', color: 'success', icon: CheckCircle2 },
+                { label: 'Primary Database', status: 'Healthy', color: 'success', icon: CheckCircle2 },
+                { label: 'Cloud Storage', status: '84% Capacity', color: 'warning', icon: AlertCircle },
+                { label: 'Worker Services', status: 'Running', color: 'success', icon: CheckCircle2 },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-2xl bg-${item.color}/10 flex items-center justify-center text-${item.color}`}>
+                      <item.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">{item.label}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-default-400 font-bold">{item.status}</p>
+                    </div>
+                  </div>
+                  <div className={`w-2 h-2 rounded-full bg-${item.color} shadow-[0_0_8px_var(--tw-shadow-color)] shadow-${item.color}`} />
+                </div>
+              ))}
+            </CardBody>
+          </Card>
+
+          <Card className="bg-orange-500 rounded-3xl shadow-2xl shadow-orange-500/20">
+             <CardBody className="p-6">
+                <h4 className="text-white font-black text-xl mb-1">Weekly Recap</h4>
+                <p className="text-white/80 text-xs mb-4">Your store performance is up by 15% this week compared to last week.</p>
+                <Button className="bg-white text-orange-500 font-bold" size="sm">Download Report</Button>
+             </CardBody>
+          </Card>
         </div>
       </div>
     </div>

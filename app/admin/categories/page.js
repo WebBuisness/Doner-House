@@ -2,12 +2,21 @@
 import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, GripVertical, Pencil, Trash2, Loader2, AlertCircle } from 'lucide-react'
+import {
+  Button,
+  Input,
+  Switch,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+  Card,
+  CardBody,
+  Tooltip,
+} from '@heroui/react'
+import { Plus, GripVertical, Pencil, Trash2, RefreshCcw, AlertCircle, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { validateData, categorySchema } from '@/lib/validations'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -19,22 +28,48 @@ function SortableRow({ cat, onEdit, onDelete, onToggle }) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : 'auto',
   }
+
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-4 bg-card border border-border rounded-xl group hover:border-orange-500/40">
-      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-orange-500 touch-none">
-        <GripVertical className="w-5 h-5" />
-      </button>
-      <div className="flex-1">
-        <div className="font-medium">{cat.name_en}</div>
-        <div className="text-xs text-muted-foreground" dir="rtl">{cat.name_ar || '—'}</div>
-      </div>
-      <div className="flex items-center gap-3">
-        <Switch checked={cat.active} onCheckedChange={() => onToggle(cat)} className="data-[state=checked]:bg-orange-500" />
-        <Button size="icon" variant="ghost" onClick={() => onEdit(cat)} className="h-8 w-8"><Pencil className="w-3.5 h-3.5" /></Button>
-        <Button size="icon" variant="ghost" onClick={() => onDelete(cat)} className="h-8 w-8 hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
-      </div>
+    <div ref={setNodeRef} style={style}>
+      <Card
+        className={`mb-3 border-none bg-content1/50 backdrop-blur-md transition-all ${
+          isDragging ? 'shadow-2xl ring-2 ring-orange-500/50 opacity-90 scale-[1.02]' : 'hover:bg-content2/80'
+        }`}
+      >
+        <CardBody className="flex flex-row items-center gap-4 p-4">
+          <div
+            {...attributes}
+            {...listeners}
+            className="p-2 -ml-2 cursor-grab active:cursor-grabbing text-default-400 hover:text-orange-500 transition-colors touch-none"
+          >
+            <GripVertical className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-bold text-base">{cat.name_en}</h4>
+            <p className="text-xs text-default-400 font-medium" dir="rtl">{cat.name_ar || '—'}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Tooltip content={cat.active ? "Active" : "Inactive"}>
+                <Switch
+                size="sm"
+                color="warning"
+                isSelected={cat.active}
+                onValueChange={() => onToggle(cat)}
+                />
+            </Tooltip>
+            <div className="flex gap-1">
+                <Button isIconOnly size="sm" variant="light" onPress={() => onEdit(cat)}>
+                    <Pencil className="w-4 h-4 text-default-400" />
+                </Button>
+                <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => onDelete(cat)}>
+                    <Trash2 className="w-4 h-4" />
+                </Button>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
     </div>
   )
 }
@@ -43,14 +78,22 @@ export default function CategoriesPage() {
   const supabase = createClient()
   const [cats, setCats] = useState([])
   const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState(false)
+  const { isOpen, onOpen, onOpenChange } = useDisclosure()
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({ name_en: '', name_ar: '', active: true })
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Hold and drag feel
+      },
+    })
+  )
 
   const load = useCallback(async () => {
+    setLoading(true)
     const { data, error } = await supabase.from('categories').select('*').order('sort_order', { ascending: true })
     if (!error) setCats(data || [])
     setLoading(false)
@@ -61,20 +104,36 @@ export default function CategoriesPage() {
   const handleDragEnd = async (ev) => {
     const { active, over } = ev
     if (!over || active.id === over.id) return
+
     const oldIdx = cats.findIndex((c) => c.id === active.id)
     const newIdx = cats.findIndex((c) => c.id === over.id)
     const reordered = arrayMove(cats, oldIdx, newIdx)
     setCats(reordered)
-    // persist
-    const updates = reordered.map((c, idx) =>
-      supabase.from('categories').update({ sort_order: idx }).eq('id', c.id)
-    )
-    await Promise.all(updates)
-    toast.success('Order updated')
+
+    try {
+      const updates = reordered.map((c, idx) =>
+        supabase.from('categories').update({ sort_order: idx }).eq('id', c.id)
+      )
+      await Promise.all(updates)
+      toast.success('Order saved successfully')
+    } catch (err) {
+      toast.error('Failed to save new order')
+    }
   }
 
-  const openNew = () => { setEditing(null); setForm({ name_en: '', name_ar: '', active: true }); setModal(true) }
-  const openEdit = (c) => { setEditing(c); setForm(c); setModal(true) }
+  const openNew = () => {
+    setEditing(null)
+    setForm({ name_en: '', name_ar: '', active: true })
+    setErrors({})
+    onOpen()
+  }
+
+  const openEdit = (c) => {
+    setEditing(c)
+    setForm(c)
+    setErrors({})
+    onOpen()
+  }
 
   const save = async () => {
     const { success, errors: validationErrors, data: validData } = validateData(categorySchema, form)
@@ -85,8 +144,6 @@ export default function CategoriesPage() {
     }
 
     setSaving(true)
-    setErrors({})
-
     try {
       let error
       if (editing) {
@@ -99,7 +156,7 @@ export default function CategoriesPage() {
       }
       if (error) throw error
       toast.success(editing ? 'Category updated' : 'Category created')
-      setModal(false)
+      onOpenChange(false)
       load()
     } catch (err) {
       toast.error(err.message || 'Failed to save category')
@@ -120,32 +177,47 @@ export default function CategoriesPage() {
     const { error } = await supabase.from('categories').update({ active: !c.active }).eq('id', c.id)
     if (error) return toast.error(error.message)
     setCats((prev) => prev.map((p) => p.id === c.id ? { ...p, active: !p.active } : p))
+    toast.success(`${c.name_en} is now ${!c.active ? 'active' : 'inactive'}`)
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="max-w-3xl space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold">Categories</h1>
-          <p className="text-muted-foreground mt-1">Drag to reorder · {cats.length} total</p>
+          <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
+          <p className="text-muted-foreground mt-1">Organize your menu by dragging sections.</p>
         </div>
-        <Button onClick={openNew} className="bg-orange-500 hover:bg-orange-600 text-white gap-2">
-          <Plus className="w-4 h-4" /> Add Category
+        <Button color="warning" onPress={openNew} startContent={<Plus className="w-4 h-4" />} className="font-bold shadow-lg shadow-warning/20">
+          Add Category
         </Button>
       </div>
 
       {loading ? (
-        <div className="text-center py-12"><Loader2 className="w-5 h-5 animate-spin mx-auto text-orange-500" /></div>
-      ) : cats.length === 0 ? (
-        <div className="text-center py-16 bg-card border border-border rounded-2xl">
-          <p className="text-muted-foreground">No categories yet</p>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+           <RefreshCcw className="w-8 h-8 animate-spin text-orange-500" />
+           <p className="text-sm text-muted-foreground animate-pulse">Loading categories...</p>
         </div>
+      ) : cats.length === 0 ? (
+        <Card className="bg-content1/50 border-2 border-dashed border-divider">
+          <CardBody className="py-20 flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-content2 flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-default-400" />
+            </div>
+            <p className="text-muted-foreground font-medium">No categories found yet.</p>
+            <Button variant="flat" color="warning" onPress={openNew}>Create your first category</Button>
+          </CardBody>
+        </Card>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={cats.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
+            <div className="space-y-1">
               {cats.map((c, idx) => (
-                <motion.div key={c.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.04 }}>
+                <motion.div
+                  key={c.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                >
                   <SortableRow cat={c} onEdit={openEdit} onDelete={remove} onToggle={toggle} />
                 </motion.div>
               ))}
@@ -154,52 +226,64 @@ export default function CategoriesPage() {
         </DndContext>
       )}
 
-      <Dialog open={modal} onOpenChange={setModal}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle className="font-display">{editing ? 'Edit Category' : 'New Category'}</DialogTitle></DialogHeader>
-
-          {Object.keys(errors).length > 0 && (
-            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex gap-3">
-              <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-              <ul className="text-xs text-destructive space-y-1">
-                {Object.entries(errors).map(([key, msg]) => (
-                  <li key={key}>• {msg}</li>
-                ))}
-              </ul>
-            </div>
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        backdrop="blur"
+        classNames={{
+            base: "bg-background border border-divider",
+            header: "border-b border-divider",
+            footer: "border-t border-divider",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <span className="text-xl font-bold">{editing ? 'Edit Category' : 'New Category'}</span>
+              </ModalHeader>
+              <ModalBody className="py-6 space-y-4">
+                <Input
+                  label="Name (English)"
+                  placeholder="e.g. Appetizers"
+                  variant="bordered"
+                  labelPlacement="outside"
+                  value={form.name_en}
+                  onValueChange={(v) => setForm({ ...form, name_en: v })}
+                  isInvalid={!!errors.name_en}
+                  errorMessage={errors.name_en}
+                />
+                <Input
+                  label="Name (Arabic)"
+                  placeholder="المقبلات"
+                  variant="bordered"
+                  labelPlacement="outside"
+                  dir="rtl"
+                  value={form.name_ar}
+                  onValueChange={(v) => setForm({ ...form, name_ar: v })}
+                />
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-content2/40 border border-divider mt-4">
+                  <div>
+                    <p className="text-sm font-bold">Active Status</p>
+                    <p className="text-xs text-muted-foreground">Visible on the customer menu.</p>
+                  </div>
+                  <Switch
+                    color="warning"
+                    isSelected={form.active}
+                    onValueChange={(v) => setForm({ ...form, active: v })}
+                  />
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={onClose}>Cancel</Button>
+                <Button color="warning" className="font-bold shadow-lg shadow-warning/20" isLoading={saving} onPress={save} startContent={!saving && <Save className="w-4 h-4" />}>
+                  {editing ? 'Update' : 'Create'}
+                </Button>
+              </ModalFooter>
+            </>
           )}
-
-          <div className="space-y-4 pt-2">
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Name (EN)</Label>
-              <Input
-                value={form.name_en}
-                onChange={(e)=>setForm({...form, name_en: e.target.value})}
-                className={`mt-1.5 bg-secondary border-border ${errors.name_en ? 'border-destructive' : ''}`}
-              />
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Name (AR)</Label>
-              <Input
-                value={form.name_ar || ''}
-                onChange={(e)=>setForm({...form, name_ar: e.target.value})}
-                dir="rtl"
-                className="mt-1.5 bg-secondary border-border"
-              />
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-              <Label className="font-medium text-sm">Active</Label>
-              <Switch checked={form.active} onCheckedChange={(v)=>setForm({...form, active: v})} className="data-[state=checked]:bg-orange-500" />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-4 border-t border-border">
-            <Button variant="outline" onClick={()=>setModal(false)}>Cancel</Button>
-            <Button onClick={save} disabled={saving} className="bg-orange-500 hover:bg-orange-600 text-white min-w-[80px]">
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        </ModalContent>
+      </Modal>
     </div>
   )
 }

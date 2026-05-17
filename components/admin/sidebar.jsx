@@ -16,6 +16,7 @@ import {
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { Button, User, Divider } from '@heroui/react'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -37,25 +38,33 @@ export default function Sidebar({ userEmail }) {
   }
 
   const SidebarBody = (
-    <div className="h-full flex flex-col bg-[#070707] border-r border-border">
+    <div className="h-full flex flex-col bg-content1 border-r border-divider shadow-xl">
       {/* Logo */}
-      <div className="p-6 flex items-center gap-3 border-b border-border">
-        <Image
-          src="/icons/icon-192.png"
-          width={36}
-          height={36}
-          alt="WBS Admin"
-          className="w-9 h-9 rounded-lg glow-orange"
-          priority
-        />
+      <div className="p-6 flex items-center gap-3">
+        <div className="relative">
+          <div className="absolute inset-0 bg-orange-500 blur-lg opacity-20" />
+          <Image
+            src="/icons/icon-192.png"
+            width={40}
+            height={40}
+            alt="WBS Admin"
+            className="relative w-10 h-10 rounded-xl"
+            priority
+          />
+        </div>
         <div>
-          <h1 className="font-display text-base font-bold leading-tight">WBS Menu Demo</h1>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Admin</p>
+          <h1 className="font-display text-lg font-bold leading-tight tracking-tight">WBS Admin</h1>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Online</p>
+          </div>
         </div>
       </div>
 
+      <Divider className="opacity-50" />
+
       {/* Nav */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-thin">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto scrollbar-hide">
         {navItems.map((item, idx) => {
           const Icon = item.icon
           const active =
@@ -72,20 +81,17 @@ export default function Sidebar({ userEmail }) {
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all relative group',
+                  'flex items-center gap-3 px-4 py-3 rounded-2xl text-sm transition-all duration-200 relative group',
                   active
-                    ? 'bg-orange-500/10 text-orange-500'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                    : 'text-muted-foreground hover:bg-content2 hover:text-foreground'
                 )}
               >
-                {active && (
-                  <motion.div
-                    layoutId="active-indicator"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 rounded-r"
-                  />
+                <Icon className={cn('w-5 h-5 shrink-0', active && 'scale-110')} />
+                <span className="font-semibold">{item.label}</span>
+                {!active && (
+                   <div className="ml-auto w-1 h-1 rounded-full bg-orange-500 scale-0 group-hover:scale-100 transition-transform" />
                 )}
-                <Icon className={cn('w-4 h-4 shrink-0', active && 'animate-pulse')} />
-                <span className="font-medium">{item.label}</span>
               </Link>
             </motion.div>
           )
@@ -93,18 +99,31 @@ export default function Sidebar({ userEmail }) {
       </nav>
 
       {/* User footer */}
-      <div className="p-3 border-t border-border">
-        <div className="px-3 py-2 mb-2">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Signed in</p>
-          <p className="text-xs font-mono truncate mt-0.5">{userEmail || '-'}</p>
+      <div className="p-4 mt-auto">
+        <div className="bg-content2/50 rounded-2xl p-4 space-y-4">
+          <User
+            name={userEmail?.split('@')[0] || 'Admin'}
+            description={userEmail || 'admin@wbs.menu'}
+            avatarProps={{
+              src: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail}`,
+              className: "bg-orange-100"
+            }}
+            classNames={{
+              name: "font-bold text-sm",
+              description: "text-[10px] font-mono",
+            }}
+          />
+          <Button
+            fullWidth
+            variant="flat"
+            color="danger"
+            onPress={handleLogout}
+            startContent={<LogOut className="w-4 h-4" />}
+            className="font-bold rounded-xl"
+          >
+            Logout
+          </Button>
         </div>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>Logout</span>
-        </button>
       </div>
     </div>
   )
@@ -112,16 +131,28 @@ export default function Sidebar({ userEmail }) {
   return (
     <>
       {/* Mobile hamburger */}
-      <button
-       onClick={() => setOpen(true)}
-       aria-label="Open navigation menu"
-       className="lg:hidden fixed top-4 left-4 z-40 w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center"
-      >
-       <Menu className="w-5 h-5" />
-      </button>
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-content1/80 backdrop-blur-md border-b border-divider z-40 px-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Image
+            src="/icons/icon-192.png"
+            width={32}
+            height={32}
+            alt="WBS"
+            className="w-8 h-8 rounded-lg"
+          />
+          <span className="font-display font-bold">WBS Admin</span>
+        </div>
+        <Button
+          isIconOnly
+          variant="light"
+          onPress={() => setOpen(true)}
+        >
+          <Menu className="w-6 h-6" />
+        </Button>
+      </div>
 
       {/* Desktop */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 z-30">{SidebarBody}</aside>
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 z-30">{SidebarBody}</aside>
 
       {/* Mobile drawer */}
       <AnimatePresence>
@@ -132,22 +163,23 @@ export default function Sidebar({ userEmail }) {
              animate={{ opacity: 1 }}
              exit={{ opacity: 0 }}
              onClick={() => setOpen(false)}
-             className="lg:hidden fixed inset-0 bg-black/60 z-40"
+             className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
            />
            <motion.aside
              initial={{ x: '-100%' }}
              animate={{ x: 0 }}
              exit={{ x: '-100%' }}
-             transition={{ type: 'spring', damping: 25 }}
-             className="lg:hidden fixed left-0 top-0 bottom-0 w-64 z-50"
+             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+             className="lg:hidden fixed left-0 top-0 bottom-0 w-72 z-50"
            >
              <button
                onClick={() => setOpen(false)}
                aria-label="Close navigation menu"
-               className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground"
+               className="absolute top-4 right-4 w-10 h-10 rounded-full bg-content2 flex items-center justify-center text-foreground z-[60] shadow-lg"
              >
                <X className="w-5 h-5" />
-             </button>              {SidebarBody}
+             </button>
+             {SidebarBody}
             </motion.aside>
           </>
         )}

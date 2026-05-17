@@ -1,6 +1,7 @@
 import './globals.css'
 import { Toaster } from 'sonner'
 import PwaRegister from './pwa-register'
+import { Providers } from '@/components/Providers'
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
@@ -79,7 +80,9 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="min-h-screen bg-background text-foreground antialiased">
-        {children}
+        <Providers>
+          {children}
+        </Providers>
         <PwaRegister />
         <Toaster
           theme="dark"

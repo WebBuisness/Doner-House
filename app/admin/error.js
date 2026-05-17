@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import Image from 'next/image'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { Card, CardBody, Button } from '@heroui/react'
 
 export default function AdminError({ error, reset }) {
   useEffect(() => {
@@ -12,35 +13,42 @@ export default function AdminError({ error, reset }) {
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl p-6">
-        <div className="flex items-center gap-3">
-          <Image
-            src="/icons/icon-192.png"
-            width={44}
-            height={44}
-            alt="WBS Admin"
-            className="rounded-xl glow-orange"
-            priority
-          />
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-widest">Admin</p>
-            <h1 className="font-display text-lg font-bold">This screen crashed</h1>
-          </div>
-        </div>
+      <Card className="w-full max-w-md bg-content1/50 backdrop-blur-md border border-divider rounded-3xl shadow-2xl">
+        <CardBody className="p-8">
+            <div className="flex items-center gap-4">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-orange-500 blur-lg opacity-20" />
+                    <Image
+                        src="/icons/icon-192.png"
+                        width={48}
+                        height={48}
+                        alt="WBS Admin"
+                        className="relative rounded-2xl"
+                        priority
+                    />
+                </div>
+                <div>
+                    <p className="text-[10px] text-default-400 uppercase tracking-[0.2em] font-bold">WBS Admin</p>
+                    <h1 className="text-xl font-black">Something went wrong</h1>
+                </div>
+            </div>
 
-        <div className="mt-4 flex items-start gap-3 text-sm text-muted-foreground">
-          <AlertTriangle className="w-4 h-4 mt-0.5 text-orange-500" />
-          <p>Retry the page. If it keeps happening, it may be a bad record or missing table.</p>
-        </div>
+            <div className="mt-6 flex items-start gap-3 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-sm text-default-600">
+                <AlertTriangle className="w-5 h-5 shrink-0 text-orange-500" />
+                <p className="leading-relaxed">Try reloading this screen. If it keeps happening, check your connection and credentials.</p>
+            </div>
 
-        <button
-          onClick={() => reset()}
-          className="mt-6 w-full h-11 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-medium inline-flex items-center justify-center gap-2"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Retry
-        </button>
-      </div>
+            <Button
+                onPress={() => reset()}
+                color="warning"
+                size="lg"
+                className="mt-8 font-bold shadow-lg shadow-warning/20"
+                startContent={<RefreshCw className="w-4 h-4" />}
+            >
+                Retry
+            </Button>
+        </CardBody>
+      </Card>
     </div>
   )
 }
