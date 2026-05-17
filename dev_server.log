@@ -1,0 +1,26 @@
+
+> nextjs-mongo-template@0.1.0 dev
+> next dev --hostname 0.0.0.0 --port 3000
+
+  ▲ Next.js 14.2.3
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+  - Experiments (use with caution):
+    · turbo
+
+ ✓ Starting...
+ ✓ Ready in 4s
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 25.9s (4160 modules)
+Supabase configuration is missing in Admin Panel! { hasUrl: false, hasKey: false }
+ ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at createClient (./lib/supabase/client.js:16:78)
+    at AdminLayout (./app/admin/layout.js:23:88)
+digest: "2562046993"
+ GET /admin 500 in 27552ms
+ ✓ Compiled in 1959ms (2077 modules)
+[?25h

@@ -1,25 +1,50 @@
 'use client';
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Input,
+  Button,
+  DropdownTrigger,
+  Dropdown,
+  DropdownMenu,
+  DropdownItem,
+  Chip,
+  User,
+  Pagination,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+  Switch,
   Select,
-  SelectTrigger,
-  SelectContent,
   SelectItem,
-  SelectValue,
-} from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Search, Pencil, Trash2, ImageOff, Star, Loader2, AlertCircle, Filter } from 'lucide-react';
+  Textarea,
+  Tooltip,
+} from '@heroui/react';
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  ChevronDown,
+  Filter,
+  MoreVertical,
+  Star,
+  RefreshCcw,
+  Eye,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { validateData, itemSchema } from '@/lib/validations';
-import { TableSkeleton } from '@/components/Skeletons';
+import ItemPreview from '@/components/admin/item-preview';
 
 const emptyItem = {
   name_en: '',
@@ -37,39 +62,39 @@ const emptyItem = {
   rating: 0,
 };
 
+const statusOptions = [
+  { name: 'Available', uid: 'available' },
+  { name: 'Unavailable', uid: 'unavailable' },
+];
+
 export default function ItemsPage() {
   const supabase = createClient();
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterCat, setFilterCat] = useState('all');
-  const [modal, setModal] = useState(false);
+  const [filterValue, setFilterValue] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(1);
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyItem);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
-  const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
-      setError(null);
       const [itemsRes, catsRes] = await Promise.all([
-        supabase
-          .from('items')
-          .select('*')
-          .order('created_at', { ascending: false }),
+        supabase.from('items').select('*').order('created_at', { ascending: false }),
         supabase.from('categories').select('*').order('sort_order'),
       ]);
-
       if (itemsRes.error) throw itemsRes.error;
       if (catsRes.error) throw catsRes.error;
-
       setItems(itemsRes.data || []);
       setCategories(catsRes.data || []);
     } catch (err) {
-      console.error('Error loading data:', err);
-      setError(err.message || 'Failed to load items');
       toast.error('Failed to load items');
     } finally {
       setLoading(false);
@@ -80,19 +105,49 @@ export default function ItemsPage() {
     load();
   }, [load]);
 
-  const filtered = useMemo(() => {
-    return items.filter((i) => {
-      if (filterCat !== 'all' && i.category_id !== filterCat) return false
-      if (search && !`${i.name_en} ${i.name_ar}`.toLowerCase().includes(search.toLowerCase())) return false
-      return true
-    })
-  }, [items, search, filterCat])
+  const hasSearchFilter = Boolean(filterValue);
 
-  const openNew = () => { setEditing(null); setForm(emptyItem); setModal(true) }
-  const openEdit = (it) => { setEditing(it); setForm({ ...emptyItem, ...it }); setModal(true) }
+  const filteredItems = useMemo(() => {
+    let filtered = [...items];
+    if (hasSearchFilter) {
+      filtered = filtered.filter((item) =>
+        item.name_en.toLowerCase().includes(filterValue.toLowerCase()) ||
+        item.name_ar.toLowerCase().includes(filterValue.toLowerCase())
+      );
+    }
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((item) =>
+        statusFilter === 'available' ? item.available : !item.available
+      );
+    }
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter((item) => item.category_id === categoryFilter);
+    }
+    return filtered;
+  }, [items, filterValue, statusFilter, categoryFilter, hasSearchFilter]);
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage);
+  const paginatedItems = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    return filteredItems.slice(start, end);
+  }, [page, filteredItems, rowsPerPage]);
+
+  const openNew = () => {
+    setEditing(null);
+    setForm(emptyItem);
+    setErrors({});
+    onOpen();
+  };
+
+  const openEdit = (item) => {
+    setEditing(item);
+    setForm({ ...emptyItem, ...item });
+    setErrors({});
+    onOpen();
+  };
 
   const save = async () => {
-    // Validate form
     const { success, errors: validationErrors, data: validData } = validateData(
       itemSchema,
       {
@@ -110,29 +165,17 @@ export default function ItemsPage() {
     }
 
     setSaving(true);
-    setErrors({});
-
     try {
-      const payload = {
-        ...validData,
-        category_id: form.category_id || null,
-      };
+      const payload = { ...validData, category_id: form.category_id || null };
+      const { error } = editing
+        ? await supabase.from('items').update(payload).eq('id', editing.id)
+        : await supabase.from('items').insert(payload);
 
-      let response;
-      if (editing) {
-        response = await supabase.from('items').update(payload).eq('id', editing.id);
-      } else {
-        response = await supabase.from('items').insert(payload);
-      }
-
-      if (response.error) throw response.error;
-
+      if (error) throw error;
       toast.success(editing ? 'Item updated' : 'Item added');
-      setModal(false);
-      setForm(emptyItem);
+      onOpenChange(false);
       load();
     } catch (err) {
-      console.error('Error saving item:', err);
       toast.error(err.message || 'Failed to save item');
     } finally {
       setSaving(false);
@@ -140,246 +183,392 @@ export default function ItemsPage() {
   };
 
   const remove = async (id) => {
-    if (!confirm('Delete this item?')) return
-    const { error } = await supabase.from('items').delete().eq('id', id)
-    if (error) return toast.error(error.message)
-    toast.success('Deleted')
-    load()
-  }
+    if (!confirm('Delete this item?')) return;
+    const { error } = await supabase.from('items').delete().eq('id', id);
+    if (error) return toast.error(error.message);
+    toast.success('Deleted');
+    load();
+  };
 
   const toggleAvail = async (it) => {
-    const { error } = await supabase.from('items').update({ available: !it.available }).eq('id', it.id)
-    if (error) return toast.error(error.message)
-    setItems((prev) => prev.map((p) => p.id === it.id ? { ...p, available: !p.available } : p))
-  }
+    const { error } = await supabase.from('items').update({ available: !it.available }).eq('id', it.id);
+    if (error) return toast.error(error.message);
+    setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, available: !p.available } : p)));
+    toast.success(`${it.name_en} is now ${!it.available ? 'available' : 'unavailable'}`);
+  };
 
-  const catName = (id) => categories.find((c) => c.id === id)?.name_en || '—'
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold">Menu Items</h1>
-          <p className="text-muted-foreground mt-1">{items.length} items · {items.filter(i=>i.available).length} available</p>
-        </div>
-        <Button onClick={openNew} className="bg-orange-500 hover:bg-orange-600 text-white gap-2">
-          <Plus className="w-4 h-4" /> Add Item
-        </Button>
-      </div>
-
-      <div className="bg-card/50 p-1 rounded-2xl border border-border flex flex-wrap gap-2 items-center">
-        <div className="relative flex-1 min-w-[300px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or description..."
-            className="pl-10 h-11 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 pr-1">
-          <div className="h-8 w-[1px] bg-border mx-2 hidden sm:block" />
-          <Select value={filterCat} onValueChange={setFilterCat}>
-            <SelectTrigger className="w-[180px] h-9 bg-secondary border-none text-xs font-medium focus:ring-orange-500">
-              <div className="flex items-center gap-2">
-                <Filter className="w-3 h-3 text-orange-500" />
-                <SelectValue placeholder="All Categories" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name_en}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {error && (
-        <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-destructive">{error}</p>
-            <button
-              onClick={load}
-              className="text-xs text-destructive hover:underline mt-1"
-            >
-              Try again
-            </button>
-          </div>
-        </div>
-      )}
-
-      {loading ? (
-        <TableSkeleton />
-      ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="px-6 py-3 font-medium">Image</th>
-                  <th className="px-6 py-3 font-medium">Name</th>
-                  <th className="px-6 py-3 font-medium">Category</th>
-                  <th className="px-6 py-3 font-medium">Price</th>
-                  <th className="px-6 py-3 font-medium">Rating</th>
-                  <th className="px-6 py-3 font-medium">Available</th>
-                  <th className="px-6 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
-                      No items
-                    </td>
-                  </tr>
-                )}
-                {filtered.map((it, idx) => (
-                  <motion.tr
-                    key={it.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: Math.min(idx, 10) * 0.03 }}
-                    className={`border-b border-border hover:bg-secondary/30 transition-colors ${!it.available ? 'opacity-60 grayscale-[0.5]' : ''}`}
-                  >
-                    <td className="px-6 py-3">
-                      {it.image_url ? (
-                        <Image
-                          src={it.image_url}
-                          alt=""
-                          width={40}
-                          height={40}
-                          unoptimized
-                          className="w-10 h-10 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                          <ImageOff className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-3">
-                      <div className="font-medium">{it.name_en}</div>
-                      <div className="text-xs text-muted-foreground">{it.name_ar}</div>
-                    </td>
-                    <td className="px-6 py-3 text-muted-foreground">{catName(it.category_id)}</td>
-                    <td className="px-6 py-3 font-mono font-semibold text-orange-500">
-                      ${Number(it.price).toFixed(2)}
-                    </td>
-                    <td className="px-6 py-3">
-                      <span className="inline-flex items-center gap-1 font-mono text-xs">
-                        <Star className="w-3 h-3 text-orange-500 fill-orange-500" />
-                        {Number(it.rating || 0).toFixed(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3">
-                      <Switch
-                        checked={it.available}
-                        onCheckedChange={() => toggleAvail(it)}
-                        className="data-[state=checked]:bg-orange-500"
-                      />
-                    </td>
-                    <td className="px-6 py-3 text-right">
-                      <div className="inline-flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => openEdit(it)}
-                          className="h-8 w-8"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => remove(it.id)}
-                          className="h-8 w-8 hover:text-destructive"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      <Dialog open={modal} onOpenChange={setModal}>
-        <DialogContent className="max-w-2xl bg-card border-border max-h-[90vh] overflow-y-auto scrollbar-thin">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">
-              {editing ? 'Edit Item' : 'Add New Item'}
-            </DialogTitle>
-          </DialogHeader>
-          {Object.keys(errors).length > 0 && (
-            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
-              <p className="text-sm font-medium text-destructive mb-2">Please fix the following errors:</p>
-              <ul className="text-xs text-destructive space-y-1">
-                {Object.entries(errors).map(([key, msg]) => (
-                  <li key={key}>• {msg}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Name (EN)</Label>
-              <Input
-                value={form.name_en}
-                onChange={(e) => setForm({ ...form, name_en: e.target.value })}
-                className="mt-1.5 bg-secondary border-border"
-              />
-            </div>
-            <div><Label className="text-xs uppercase tracking-wider text-muted-foreground">Name (AR)</Label><Input value={form.name_ar || ''} onChange={(e)=>setForm({...form, name_ar: e.target.value})} className="mt-1.5 bg-secondary border-border" dir="rtl" /></div>
-            <div className="md:col-span-2"><Label className="text-xs uppercase tracking-wider text-muted-foreground">Description (EN)</Label><Textarea value={form.desc_en || ''} onChange={(e)=>setForm({...form, desc_en: e.target.value})} className="mt-1.5 bg-secondary border-border" rows={2} /></div>
-            <div className="md:col-span-2"><Label className="text-xs uppercase tracking-wider text-muted-foreground">Description (AR)</Label><Textarea value={form.desc_ar || ''} onChange={(e)=>setForm({...form, desc_ar: e.target.value})} className="mt-1.5 bg-secondary border-border" rows={2} dir="rtl" /></div>
-            <div><Label className="text-xs uppercase tracking-wider text-muted-foreground">Category</Label>
-              <Select value={form.category_id || ''} onValueChange={(v) => setForm({...form, category_id: v})}>
-                <SelectTrigger className="mt-1.5 bg-secondary border-border"><SelectValue placeholder="Select category" /></SelectTrigger>
-                <SelectContent>{categories.map((c)=><SelectItem key={c.id} value={c.id}>{c.name_en}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label className="text-xs uppercase tracking-wider text-muted-foreground">Price</Label><Input type="number" step="0.01" value={form.price} onChange={(e)=>setForm({...form, price: e.target.value})} className="mt-1.5 bg-secondary border-border font-mono" /></div>
-            <div className="md:col-span-2"><Label className="text-xs uppercase tracking-wider text-muted-foreground">Image URL</Label><Input value={form.image_url || ''} onChange={(e)=>setForm({...form, image_url: e.target.value})} className="mt-1.5 bg-secondary border-border" placeholder="https://..." /></div>
-
-            <div className="md:col-span-2 flex items-center justify-between p-3 rounded-lg bg-secondary">
-              <div>
-                <Label className="font-medium">Has Combo</Label>
-                <p className="text-xs text-muted-foreground">Offer a combo meal option</p>
-              </div>
-              <Switch checked={form.has_combo} onCheckedChange={(v)=>setForm({...form, has_combo: v})} className="data-[state=checked]:bg-orange-500" />
-            </div>
-            {form.has_combo && (
-              <>
-                <div><Label className="text-xs uppercase tracking-wider text-muted-foreground">Combo Price</Label><Input type="number" step="0.01" value={form.combo_price || ''} onChange={(e)=>setForm({...form, combo_price: e.target.value})} className="mt-1.5 bg-secondary border-border font-mono" /></div>
-                <div></div>
-                <div><Label className="text-xs uppercase tracking-wider text-muted-foreground">Combo Desc (EN)</Label><Input value={form.combo_desc_en || ''} onChange={(e)=>setForm({...form, combo_desc_en: e.target.value})} className="mt-1.5 bg-secondary border-border" /></div>
-                <div><Label className="text-xs uppercase tracking-wider text-muted-foreground">Combo Desc (AR)</Label><Input value={form.combo_desc_ar || ''} onChange={(e)=>setForm({...form, combo_desc_ar: e.target.value})} className="mt-1.5 bg-secondary border-border" dir="rtl" /></div>
-              </>
+  const renderCell = useCallback((item, columnKey) => {
+    const cellValue = item[columnKey];
+    switch (columnKey) {
+      case 'name':
+        return (
+          <User
+            avatarProps={{ radius: 'lg', src: item.image_url, size: 'lg' }}
+            description={item.name_ar}
+            name={item.name_en}
+          >
+            {item.name_en}
+          </User>
+        );
+      case 'category':
+        return (
+          <Chip variant="flat" size="sm" color="warning">
+            {categories.find((c) => c.id === item.category_id)?.name_en || '—'}
+          </Chip>
+        );
+      case 'price':
+        return (
+          <div className="flex flex-col">
+            <p className="text-bold text-sm text-orange-500 font-mono">${Number(item.price).toFixed(2)}</p>
+            {item.has_combo && (
+              <p className="text-bold text-[10px] text-default-400 font-mono">Combo: ${item.combo_price}</p>
             )}
-
-            <div className="md:col-span-2 flex items-center justify-between p-3 rounded-lg bg-secondary">
-              <div>
-                <Label className="font-medium">Available</Label>
-                <p className="text-xs text-muted-foreground">Show on customer menu</p>
-              </div>
-              <Switch checked={form.available} onCheckedChange={(v)=>setForm({...form, available: v})} className="data-[state=checked]:bg-orange-500" />
-            </div>
           </div>
-          <div className="flex justify-end gap-2 pt-4 border-t border-border">
-            <Button variant="outline" onClick={() => setModal(false)}>Cancel</Button>
-            <Button onClick={save} disabled={saving || !form.name_en} className="bg-orange-500 hover:bg-orange-600 text-white min-w-[100px]">
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (editing ? 'Update' : 'Create')}
+        );
+      case 'rating':
+        return (
+          <div className="flex items-center gap-1">
+            <Star className="w-3 h-3 fill-warning text-warning" />
+            <span className="text-xs font-mono">{Number(item.rating || 0).toFixed(1)}</span>
+          </div>
+        );
+      case 'status':
+        return (
+          <Tooltip content={item.available ? "Click to disable" : "Click to enable"}>
+            <Switch
+              size="sm"
+              color="warning"
+              isSelected={item.available}
+              onValueChange={() => toggleAvail(item)}
+            />
+          </Tooltip>
+        );
+      case 'actions':
+        return (
+          <div className="relative flex justify-end items-center gap-2">
+            <Tooltip content="Edit">
+                <Button isIconOnly size="sm" variant="light" onPress={() => openEdit(item)}>
+                <Pencil className="w-4 h-4 text-default-400" />
+                </Button>
+            </Tooltip>
+            <Tooltip color="danger" content="Delete">
+                <Button isIconOnly size="sm" variant="light" onPress={() => remove(item.id)}>
+                <Trash2 className="w-4 h-4 text-danger" />
+                </Button>
+            </Tooltip>
+          </div>
+        );
+      default:
+        return cellValue;
+    }
+  }, [categories]);
+
+  const topContent = useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between gap-3 items-end">
+          <Input
+            isClearable
+            className="w-full sm:max-w-[44%]"
+            placeholder="Search by name..."
+            startContent={<Search className="w-4 h-4" />}
+            value={filterValue}
+            onClear={() => setFilterValue('')}
+            onValueChange={setFilterValue}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button endContent={<ChevronDown className="text-small" />} variant="flat">
+                  Status
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={new Set([statusFilter])}
+                selectionMode="single"
+                onSelectionChange={(keys) => setStatusFilter(Array.from(keys)[0])}
+              >
+                 <DropdownItem key="all">All</DropdownItem>
+                 <DropdownItem key="available">Available</DropdownItem>
+                 <DropdownItem key="unavailable">Unavailable</DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button endContent={<ChevronDown className="text-small" />} variant="flat">
+                  Category
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Category filter"
+                closeOnSelect={true}
+                selectedKeys={new Set([categoryFilter])}
+                selectionMode="single"
+                onSelectionChange={(keys) => setCategoryFilter(Array.from(keys)[0])}
+              >
+                <DropdownItem key="all">All Categories</DropdownItem>
+                {categories.map((cat) => (
+                  <DropdownItem key={cat.id}>{cat.name_en}</DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+            <Button color="warning" endContent={<Plus />} onPress={openNew} className="font-bold">
+              Add Item
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-default-400 text-small">Total {items.length} items</span>
+          <label className="flex items-center text-default-400 text-small">
+            Rows per page:
+            <select
+              className="bg-transparent outline-none text-default-400 text-small ml-1"
+              onChange={(e) => setRowsPerPage(Number(e.target.value))}
+            >
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    );
+  }, [filterValue, statusFilter, categoryFilter, items.length, categories]);
+
+  const bottomContent = useMemo(() => {
+    return (
+      <div className="py-2 px-2 flex justify-between items-center">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="warning"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+        <div className="hidden sm:flex w-[30%] justify-end gap-2">
+          <Button isDisabled={pages === 1} size="sm" variant="flat" onPress={() => setPage((prev) => (prev > 1 ? prev - 1 : prev))}>
+            Previous
+          </Button>
+          <Button isDisabled={pages === 1} size="sm" variant="flat" onPress={() => setPage((prev) => (prev < pages ? prev + 1 : prev))}>
+            Next
+          </Button>
+        </div>
+      </div>
+    );
+  }, [page, pages]);
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div className="flex flex-col gap-1 text-center md:text-left">
+        <h1 className="text-3xl font-bold tracking-tight">Menu Items</h1>
+        <p className="text-muted-foreground">Manage your products, prices, and availability.</p>
+      </div>
+
+      <Table
+        aria-label="Items table"
+        isHeaderSticky
+        bottomContent={bottomContent}
+        bottomContentPlacement="outside"
+        classNames={{
+          wrapper: "max-h-[700px] bg-content1/50 backdrop-blur-md shadow-xl rounded-2xl",
+          th: "bg-content2 text-default-500 border-b border-divider",
+        }}
+        topContent={topContent}
+        topContentPlacement="outside"
+      >
+        <TableHeader>
+          <TableColumn key="name">ITEM</TableColumn>
+          <TableColumn key="category">CATEGORY</TableColumn>
+          <TableColumn key="price">PRICE</TableColumn>
+          <TableColumn key="rating">RATING</TableColumn>
+          <TableColumn key="status">STATUS</TableColumn>
+          <TableColumn key="actions" align="end">ACTIONS</TableColumn>
+        </TableHeader>
+        <TableBody emptyContent={"No items found"} items={paginatedItems} isLoading={loading} loadingContent={<RefreshCcw className="animate-spin" />}>
+          {(item) => (
+            <TableRow key={item.id}>
+              {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        size="5xl"
+        scrollBehavior="inside"
+        classNames={{
+            base: "bg-background border border-divider",
+            header: "border-b border-divider",
+            footer: "border-t border-divider",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <span className="text-xl font-bold">{editing ? 'Edit Item' : 'Add New Item'}</span>
+                <p className="text-xs text-muted-foreground font-normal">Fill in the details for your product.</p>
+              </ModalHeader>
+              <ModalBody className="py-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Left Column: Form */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input
+                        label="Name (English)"
+                        placeholder="e.g. Classic Burger"
+                        variant="bordered"
+                        labelPlacement="outside"
+                        value={form.name_en}
+                        onValueChange={(v) => setForm({ ...form, name_en: v })}
+                        isInvalid={!!errors.name_en}
+                        errorMessage={errors.name_en}
+                      />
+                      <Input
+                        label="Name (Arabic)"
+                        placeholder="برجر كلاسيك"
+                        variant="bordered"
+                        labelPlacement="outside"
+                        dir="rtl"
+                        value={form.name_ar}
+                        onValueChange={(v) => setForm({ ...form, name_ar: v })}
+                        isInvalid={!!errors.name_ar}
+                        errorMessage={errors.name_ar}
+                      />
+                      <Textarea
+                        label="Description (English)"
+                        placeholder="Describe the item..."
+                        variant="bordered"
+                        labelPlacement="outside"
+                        className="md:col-span-2"
+                        value={form.desc_en}
+                        onValueChange={(v) => setForm({ ...form, desc_en: v })}
+                      />
+                      <Textarea
+                        label="Description (Arabic)"
+                        placeholder="وصف المنتج..."
+                        variant="bordered"
+                        labelPlacement="outside"
+                        className="md:col-span-2"
+                        dir="rtl"
+                        value={form.desc_ar}
+                        onValueChange={(v) => setForm({ ...form, desc_ar: v })}
+                      />
+                      <Select
+                        label="Category"
+                        placeholder="Select a category"
+                        variant="bordered"
+                        labelPlacement="outside"
+                        selectedKeys={form.category_id ? [form.category_id] : []}
+                        onSelectionChange={(keys) => setForm({ ...form, category_id: Array.from(keys)[0] })}
+                      >
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>{cat.name_en}</SelectItem>
+                        ))}
+                      </Select>
+                      <Input
+                        label="Price"
+                        placeholder="0.00"
+                        variant="bordered"
+                        labelPlacement="outside"
+                        type="number"
+                        startContent={<div className="pointer-events-none flex items-center"><span className="text-default-400 text-small">$</span></div>}
+                        value={form.price}
+                        onValueChange={(v) => setForm({ ...form, price: v })}
+                      />
+                      <Input
+                        label="Image URL"
+                        placeholder="https://example.com/image.jpg"
+                        variant="bordered"
+                        labelPlacement="outside"
+                        className="md:col-span-2"
+                        value={form.image_url}
+                        onValueChange={(v) => setForm({ ...form, image_url: v })}
+                      />
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-content2/40 border border-divider space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold">Combo Option</p>
+                          <p className="text-xs text-muted-foreground">Enable this to offer a combo price.</p>
+                        </div>
+                        <Switch color="warning" isSelected={form.has_combo} onValueChange={(v) => setForm({ ...form, has_combo: v })} />
+                      </div>
+                      {form.has_combo && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                           <Input
+                             label="Combo Price"
+                             variant="bordered"
+                             labelPlacement="outside"
+                             type="number"
+                             value={form.combo_price}
+                             onValueChange={(v) => setForm({ ...form, combo_price: v })}
+                           />
+                           <div />
+                           <Input label="Combo Desc (EN)" variant="bordered" labelPlacement="outside" value={form.combo_desc_en} onValueChange={(v) => setForm({ ...form, combo_desc_en: v })} />
+                           <Input label="Combo Desc (AR)" variant="bordered" labelPlacement="outside" dir="rtl" value={form.combo_desc_ar} onValueChange={(v) => setForm({ ...form, combo_desc_ar: v })} />
+                        </motion.div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-8">
+                       <div className="flex items-center gap-2">
+                         <span className="text-sm font-medium">Available</span>
+                         <Switch color="warning" isSelected={form.available} onValueChange={(v) => setForm({ ...form, available: v })} />
+                       </div>
+                       <div className="flex-1">
+                          <Input
+                            label="Rating"
+                            type="number"
+                            min="0"
+                            max="5"
+                            step="0.1"
+                            variant="bordered"
+                            labelPlacement="outside"
+                            value={form.rating}
+                            onValueChange={(v) => setForm({ ...form, rating: v })}
+                          />
+                       </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Preview */}
+                  <div className="lg:col-span-1 space-y-4">
+                    <div className="sticky top-0">
+                      <p className="text-sm font-bold mb-4 flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-orange-500" />
+                        Live Preview
+                      </p>
+                      <div className="p-8 rounded-3xl bg-content2/20 border-2 border-dashed border-divider flex items-center justify-center">
+                        <ItemPreview
+                          item={form}
+                          categoryName={categories.find(c => c.id === form.category_id)?.name_en}
+                        />
+                      </div>
+                      <p className="mt-4 text-[10px] text-muted-foreground text-center uppercase tracking-widest">How it looks on the menu</p>
+                    </div>
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={onClose}>Cancel</Button>
+                <Button color="warning" className="font-bold shadow-lg shadow-warning/20" isLoading={saving} onPress={save}>
+                  {editing ? 'Update Product' : 'Create Product'}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
-  )
+  );
 }

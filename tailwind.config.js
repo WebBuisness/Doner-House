@@ -6,6 +6,7 @@ module.exports = {
       './components/**/*.{js,jsx}',
       './app/**/*.{js,jsx}',
       './src/**/*.{js,jsx}',
+      './node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}',
     ],
     prefix: "",
     theme: {
@@ -98,5 +99,5 @@ module.exports = {
     		}
     	}
     },
-    plugins: [require("tailwindcss-animate")],
+    plugins: [require("tailwindcss-animate"), require("@heroui/react").heroui()],
   }

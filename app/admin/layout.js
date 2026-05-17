@@ -49,10 +49,10 @@ export default function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505]">
+    <div className="min-h-screen bg-background">
       <Sidebar userEmail={email} />
-      <main className="lg:pl-64 min-h-screen">
-        <div className="max-w-[1600px] mx-auto p-4 lg:p-10 pt-20 lg:pt-10">
+      <main className="lg:pl-72 min-h-screen flex flex-col items-center">
+        <div className="w-full max-w-7xl p-4 lg:p-10 pt-24 lg:pt-10">
           {children}
         </div>
       </main>

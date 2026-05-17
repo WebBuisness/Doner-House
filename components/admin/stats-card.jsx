@@ -1,6 +1,7 @@
 'use client'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { useEffect } from 'react'
+import { Card, CardBody } from '@heroui/react'
 
 function CountUp({ value, prefix = '', suffix = '', decimals = 0 }) {
   const count = useMotionValue(0)
@@ -22,30 +23,43 @@ function CountUp({ value, prefix = '', suffix = '', decimals = 0 }) {
 export default function StatsCard({ icon: Icon, label, value, prefix, suffix, decimals, subtext, accent = false, delay = 0 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay }}
-      className={`relative bg-card border border-border rounded-2xl p-5 overflow-hidden group hover:border-orange-500/40 transition-colors ${accent ? 'glow-orange' : ''}`}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3, delay }}
+      className="h-full"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-      <div className="flex items-start justify-between relative">
-        <div>
-          <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">{label}</p>
-          <div className="font-display text-3xl font-bold mt-2 font-mono">
-            {typeof value === 'number' ? (
-              <CountUp value={value} prefix={prefix} suffix={suffix} decimals={decimals} />
-            ) : (
-              <span>{value ?? '—'}</span>
-            )}
+      <Card
+        isPressable
+        className={`border-none bg-content1/50 backdrop-blur-md h-full overflow-hidden group ${
+          accent ? 'shadow-[0_0_20px_rgba(249,115,22,0.15)] ring-1 ring-orange-500/20' : ''
+        }`}
+      >
+        <CardBody className="p-6">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            {Icon && <Icon size={80} className="text-orange-500" />}
           </div>
-          {subtext && <p className="text-xs text-muted-foreground mt-1">{subtext}</p>}
-        </div>
-        {Icon && (
-          <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
-            <Icon className="w-5 h-5 text-orange-500" />
+          <div className="flex flex-col h-full justify-between gap-4 relative z-10">
+            <div className="flex items-center gap-3">
+              {Icon && (
+                <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform">
+                  <Icon className="w-6 h-6" />
+                </div>
+              )}
+              <p className="text-xs uppercase tracking-widest text-default-500 font-bold">{label}</p>
+            </div>
+            <div>
+              <div className="font-display text-4xl font-bold tracking-tight">
+                {typeof value === 'number' ? (
+                  <CountUp value={value} prefix={prefix} suffix={suffix} decimals={decimals} />
+                ) : (
+                  <span>{value ?? '—'}</span>
+                )}
+              </div>
+              {subtext && <p className="text-[10px] text-default-400 font-medium uppercase tracking-wider mt-2">{subtext}</p>}
+            </div>
           </div>
-        )}
-      </div>
+        </CardBody>
+      </Card>
     </motion.div>
   )
 }
