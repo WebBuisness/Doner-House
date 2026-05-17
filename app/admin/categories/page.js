@@ -181,9 +181,9 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="max-w-3xl space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="text-center md:text-left">
           <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
           <p className="text-muted-foreground mt-1">Organize your menu by dragging sections.</p>
         </div>

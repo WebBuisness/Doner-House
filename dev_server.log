@@ -9,9 +9,9 @@
     · turbo
 
  ✓ Starting...
- ✓ Ready in 1775ms
+ ✓ Ready in 4s
  ○ Compiling /admin ...
- ✓ Compiled /admin in 18.3s (4156 modules)
+ ✓ Compiled /admin in 25.9s (4160 modules)
 Supabase configuration is missing in Admin Panel! { hasUrl: false, hasKey: false }
  ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
 
@@ -21,62 +21,6 @@ https://supabase.com/dashboard/project/_/settings/api
     at createClient (./lib/supabase/client.js:16:78)
     at AdminLayout (./app/admin/layout.js:23:88)
 digest: "2562046993"
- GET /admin 500 in 19924ms
- ✓ Compiled in 1830ms (2075 modules)
- ○ Compiling /admin/items ...
- ✓ Compiled /admin/items in 13.3s (4194 modules)
-Supabase configuration is missing in Admin Panel! { hasUrl: false, hasKey: false }
- ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
-
-Check your Supabase project's API settings to find these values
-
-https://supabase.com/dashboard/project/_/settings/api
-    at createClient (./lib/supabase/client.js:16:78)
-    at AdminLayout (./app/admin/layout.js:23:88)
-digest: "2562046993"
- ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
- GET /admin/items 500 in 13937ms
- ○ Compiling /admin/categories ...
- ✓ Compiled /admin/categories in 1044ms (4214 modules)
-Supabase configuration is missing in Admin Panel! { hasUrl: false, hasKey: false }
- ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
-
-Check your Supabase project's API settings to find these values
-
-https://supabase.com/dashboard/project/_/settings/api
-    at createClient (./lib/supabase/client.js:16:78)
-    at AdminLayout (./app/admin/layout.js:23:88)
-digest: "2562046993"
- GET /admin/categories 500 in 1212ms
- ✓ Compiled in 2.6s (4228 modules)
-Supabase configuration is missing in Admin Panel! { hasUrl: false, hasKey: false }
- ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
-
-Check your Supabase project's API settings to find these values
-
-https://supabase.com/dashboard/project/_/settings/api
-    at createClient (./lib/supabase/client.js:16:78)
-    at AdminLayout (./app/admin/layout.js:23:88)
-digest: "2562046993"
- GET /admin 500 in 134ms
-Supabase configuration is missing in Admin Panel! { hasUrl: false, hasKey: false }
- ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
-
-Check your Supabase project's API settings to find these values
-
-https://supabase.com/dashboard/project/_/settings/api
-    at createClient (./lib/supabase/client.js:16:78)
-    at AdminLayout (./app/admin/layout.js:23:88)
-digest: "2562046993"
- GET /admin/items 500 in 86ms
-Supabase configuration is missing in Admin Panel! { hasUrl: false, hasKey: false }
- ⨯ Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
-
-Check your Supabase project's API settings to find these values
-
-https://supabase.com/dashboard/project/_/settings/api
-    at createClient (./lib/supabase/client.js:16:78)
-    at AdminLayout (./app/admin/layout.js:23:88)
-digest: "2562046993"
- GET /admin/categories 500 in 61ms
+ GET /admin 500 in 27552ms
+ ✓ Compiled in 1959ms (2077 modules)
 [?25h
